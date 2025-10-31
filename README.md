@@ -140,8 +140,3 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 * **Keep Satisfied:** Councils, Sponsors.
 * **Keep Informed:** Insurance, Healthcare, Planners.
 * **Monitor:** Public, Data Providers, Tech Vendors.
-
----
-    
-✅ **Status:** Project planning phase complete (Scope, Objectives, Stakeholders).
-Next: Requirements, Timeline, and Risk Management documentation.
