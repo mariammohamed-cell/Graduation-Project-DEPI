@@ -113,7 +113,7 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 
 ### 9. Stakeholder Analysis
 
-#### 🟩 Primary Stakeholders
+#### Primary Stakeholders
 
 * **Road Safety Authorities:** Use model insights to enhance safety policies.
 * **Traffic Police Departments:** Use hotspot maps to plan patrols.
@@ -121,14 +121,14 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 * **Data Science Team:** Responsible for development, modeling, and deployment.
 * **Project Supervisor:** Oversees progress and provides guidance.
 
-#### 🟨 Secondary Stakeholders
+#### Secondary Stakeholders
 
 * **Insurance Companies:** Adjust risk models and policies.
 * **Urban Planners:** Use data for better road designs.
 * **Healthcare & Emergency Services:** Optimize response routes.
 * **General Public / Drivers:** Benefit from safer roads.
 
-#### 🟦 Supporting Stakeholders
+#### Supporting Stakeholders
 
 * **Kaggle / Data Providers:** Supply dataset.
 * **Academic Institution:** Ensure quality and ethics.
@@ -142,6 +142,6 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 * **Monitor:** Public, Data Providers, Tech Vendors.
 
 ---
-
+    
 ✅ **Status:** Project planning phase complete (Scope, Objectives, Stakeholders).
 Next: Requirements, Timeline, and Risk Management documentation.
