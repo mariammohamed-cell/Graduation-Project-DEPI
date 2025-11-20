@@ -18,7 +18,7 @@ The goal is to **clean, preprocess, and explore** this dataset to prepare it for
 
 ---
 
-### 3. Objectives
+### 2. Objectives
 
 * Predict accident severity (Slight, Serious, Fatal) using historical data.
 * Identify key contributing factors (speed limit, road type, weather, lighting, time).
@@ -29,7 +29,7 @@ The goal is to **clean, preprocess, and explore** this dataset to prepare it for
 
 ---
 
-### 4. Tools & Technologies
+### 3. Tools & Technologies
 
 **Data Processing & Analysis:** Python, Pandas, NumPy, SciPy, Dask, PySpark
 **Visualization:** Matplotlib, Seaborn, Plotly, Bokeh, Folium, GeoPandas
@@ -40,7 +40,7 @@ The goal is to **clean, preprocess, and explore** this dataset to prepare it for
 
 ---
 
-### 5. KPIs (Key Performance Indicators)
+### 4. KPIs (Key Performance Indicators)
 
 **Data Quality:** 100% missing values handled, 97% data accuracy.
 **Model Performance:** 92% accuracy / 90% F1-score, 8% error rate.
@@ -49,7 +49,7 @@ The goal is to **clean, preprocess, and explore** this dataset to prepare it for
 
 ---
 
-### 6. Business Objective
+### 5. Business Objective
 
 Reduce road accident fatalities and injuries by predicting accident severity and identifying key risk factors related to **location, time, and environmental conditions**.
 
@@ -70,7 +70,7 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 
 ---
 
-### 7. Dataset Overview
+### 6. Dataset Overview
 
 **Dataset:** UK Road Traffic Accidents (Kaggle)
 
@@ -80,7 +80,7 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 
 ---
 
-### 8. Column Description (Sample)
+### 7. Column Description (Sample)
 
 | Column               | Type        | Description                          |
 | -------------------- | ----------- | ------------------------------------ |
@@ -96,7 +96,7 @@ Reduce road accident fatalities and injuries by predicting accident severity and
 
 ---
 
-### 9. Stakeholder Analysis
+### 8. Stakeholder Analysis
 
 #### Primary Stakeholders
 
