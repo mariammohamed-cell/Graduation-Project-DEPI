@@ -18,21 +18,6 @@ The goal is to **clean, preprocess, and explore** this dataset to prepare it for
 
 ---
 
-### 2. Group Members & Roles
-
-| Name                           | Role                                                |
-| ------------------------------ | --------------------------------------------------- |
-| **Mariam Mohamed Ibrahim**     | Team Leader – Project Management & Model Deployment |
-| **Mariam Reda ElSayed**        | Data Collection & Cleaning                          |
-| **Amal Nageh Esmail Gawad**    | Data Analysis & Visualization                       |
-| **Karim Hamada Mohamed**       | Model Development & Optimization                    |
-| **Ahmed Walid Ahmed Amin**     | MLOps & Monitoring                                  |
-| **Rahaf Mohamed Adel Mohamed** | Documentation & Reporting                           |
-
-**Team Leader:** Mariam Mohamed Ibrahim
-
----
-
 ### 3. Objectives
 
 * Predict accident severity (Slight, Serious, Fatal) using historical data.
