@@ -45,11 +45,7 @@ st.markdown("<h1 style='text-align: center; color: #4A90E2;'>Accident Severity P
 # --- Inputs ---
 selected_urban = st.selectbox("Urban or Rural Area", list(urban_rural_options.keys()))
 speed_limit = st.slider(
-    "Speed Limit (mph)",
-    20,
-    60 if selected_urban=="Urban" else 70,
-    30 if selected_urban=="Urban" else 40,
-    step=5
+    "Speed Limit (mph)", 20, 60 if selected_urban=="Urban" else 70, 30 if selected_urban=="Urban" else 40, step=5
 )
 selected_light = st.selectbox("Light Conditions", list(light_mapping.keys()))
 surface_options = ['Dry', 'Wet/Damp', 'Frost/Ice', 'Snow', 'Flood'] if "Darkness" in selected_light else ['Dry', 'Wet/Damp']
@@ -73,28 +69,25 @@ for col in selected_features:
         input_df[col] = 0
 input_df = input_df[selected_features]
 
-# Convert all to float64 to avoid LightGBM errors
-input_df = input_df.astype(np.float64)
+# Convert all to float and then to numpy array to avoid LightGBMError
+input_array = input_df.astype(float).to_numpy()
 
 # --- Prediction ---
 try:
-    # Use .values to avoid PyArrow / Streamlit conversion issues
-    probs = model.predict_proba(input_df.values)
+    probs = model.predict_proba(input_array)
     pred = np.argmax(probs, axis=1)
     pred_label_raw = le.inverse_transform(pred)[0]
 
-    # --- Rule-based adjustment ---
-    pred_label = pred_label_raw  # start with model prediction
-
-    # Rule: reduce severity if conditions are safe
-    if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
-        pred_label = "Medium Severity" if pred_label_raw=="High Severity" else pred_label_raw
-    if selected_urban == "Urban" and speed_limit <= 40:
-        pred_label = "Medium Severity" if pred_label_raw=="High Severity" else pred_label_raw
-    # Optional: map labels to SEVERE / NOT SEVERE
-    if pred_label in ["High Severity", "3", 3]:
+    # --- Rule-based logic ---
+    if pred_label_raw in ["High Severity", "3", 3]:
         pred_label = "SEVERE"
     else:
+        pred_label = "NOT SEVERE"
+
+    # Optional additional logic to make predictions more "logical"
+    if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
+        pred_label = "NOT SEVERE"
+    if selected_urban == "Urban" and speed_limit <= 40:
         pred_label = "NOT SEVERE"
 
 except Exception as e:
