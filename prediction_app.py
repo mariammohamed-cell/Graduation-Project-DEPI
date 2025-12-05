@@ -14,22 +14,30 @@ def is_kaggle_environment():
 BASE_PATH = "/kaggle/input/pkl-files/" if is_kaggle_environment() else ""
 
 # Global variable to hold the actual required features list
-REQUIRED_LGB_FEATURES = []
+# *** التعديل الحاسم: تعريف الميزات يدوياً لضمان التطابق وتجنب الخطأ (1, 0) ***
+REQUIRED_LGB_FEATURES = [
+    'Did_Police_Officer_Attend_Scene_of_Accident',
+    'Speed_Urban_Rural', # ميزة مُهندسة
+    'Speed_limit',
+    'Urban_or_Rural_Area',
+    'Light_Conditions',
+    'Accident_Hour',
+    '2nd_Road_Class',
+    'Light_Road_Interaction', # ميزة مُهندسة
+    'Road_Type',
+    'Day_of_Week'
+]
 
 # --- Load Resources ---
 @st.cache_resource
 def load_model_and_resources():
-    global REQUIRED_LGB_FEATURES
     try:
         model = joblib.load(os.path.join(BASE_PATH, "lgb_model.pkl"))
         le = joblib.load(os.path.join(BASE_PATH, "target_encoder.pkl"))
         
-        # *** CRITICAL CHANGE: Get the 10 features directly from the model object ***
-        # هذا يضمن أن القائمة هي نفسها التي استخدمت في التدريب (feature_names)
-        REQUIRED_LGB_FEATURES = model.feature_name_
+        # تم إزالة محاولة قراءة model.feature_name_ والاعتماد على القائمة المحددة يدوياً
         
         st.sidebar.markdown("---")
-        # يجب أن تظهر هنا قيمة 10
         st.sidebar.write(f"Model expects {len(REQUIRED_LGB_FEATURES)} features.")
         st.sidebar.write("First 3 features:", REQUIRED_LGB_FEATURES[:3])
         
@@ -74,6 +82,7 @@ input_df = pd.DataFrame({
     "Road_Surface_Conditions": [surface_mapping[selected_surface]], # تبقى هنا للاستخدام في الهندسة
     
     # الميزات الوهمية الـ 5 الأخرى التي يحتاجها النموذج
+    # يتم تعيين قيم افتراضية هنا
     "Did_Police_Officer_Attend_Scene_of_Accident": [0],
     "Accident_Hour": [12], 
     "2nd_Road_Class": [0], 
@@ -87,8 +96,7 @@ input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Ro
 
 # --- CRITICAL STEP: Alignment and Ordering using the loaded list ---
 
-# 1. تصفية وحصر الأعمدة لتشمل الـ 10 ميزات المطلوبة فقط بالترتيب الصحيح
-# بما أننا الآن نستخدم القائمة الصحيحة مباشرة من النموذج، فهذه الخطوة مضمونة
+# 1. تصفية وحصر الأعمدة لتشمل الـ 10 ميزات المطلوبة فقط بالترتيب الصحيح (باستخدام القائمة الثابتة)
 try:
     input_df_final = input_df[REQUIRED_LGB_FEATURES]
 except KeyError as e:
@@ -106,7 +114,7 @@ try:
 
     input_np = input_df_final.to_numpy()
     
-    # Disable shape check for robustness (even though we fixed the underlying issue)
+    # استخدام predict_disable_shape_check كطبقة حماية إضافية
     probs = model.predict_proba(input_np, predict_disable_shape_check=True)
     
     pred = np.argmax(probs, axis=1)
@@ -141,4 +149,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-st.write("Model's required features list:", model.feature_name_)
