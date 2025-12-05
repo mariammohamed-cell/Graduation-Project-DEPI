@@ -13,14 +13,24 @@ def is_kaggle_environment():
 
 BASE_PATH = "/kaggle/input/pkl-files/" if is_kaggle_environment() else ""
 
+# Global variable to hold the actual required features list
+REQUIRED_LGB_FEATURES = []
+
 # --- Load Resources ---
 @st.cache_resource
 def load_model_and_resources():
+    global REQUIRED_LGB_FEATURES
     try:
         model = joblib.load(os.path.join(BASE_PATH, "lgb_model.pkl"))
         le = joblib.load(os.path.join(BASE_PATH, "target_encoder.pkl"))
-        # selected_features is loaded but we will strictly enforce the features list below
-        # joblib.load(os.path.join(BASE_PATH, "selected_features.pkl")) 
+        
+        # *** CRITICAL CHANGE: Load the actual feature list from the saved file ***
+        REQUIRED_LGB_FEATURES = joblib.load(os.path.join(BASE_PATH, "selected_features.pkl")) 
+        
+        st.sidebar.markdown("---")
+        st.sidebar.write(f"Model expects {len(REQUIRED_LGB_FEATURES)} features.")
+        st.sidebar.write("First 3 features:", REQUIRED_LGB_FEATURES[:3])
+        
         return model, le
     except Exception as e:
         st.error(f"Error loading resources: {e}")
@@ -28,22 +38,7 @@ def load_model_and_resources():
 
 model, le = load_model_and_resources()
 
-# --- Required 10 Features (Confirmed from LightGBM file) ---
-# THIS MUST BE EXACTLY THE LIST USED DURING MODEL TRAINING
-REQUIRED_LGB_FEATURES = [
-    'Did_Police_Officer_Attend_Scene_of_Accident', 
-    'Speed_Urban_Rural', 
-    'Speed_limit', 
-    'Urban_or_Rural_Area', 
-    'Light_Conditions', 
-    'Accident_Hour', 
-    '2nd_Road_Class', 
-    'Light_Road_Interaction', 
-    'Road_Type', 
-    'Day_of_Week'
-]
-
-# --- Encoders / Mappings ---
+# --- Encoders / Mappings (kept same) ---
 urban_rural_options = {"Urban": 1, "Rural": 2, "Unallocated": 3}
 light_mapping = {
     'Daylight: Street light present': 4,
@@ -72,8 +67,8 @@ input_df = pd.DataFrame({
     "Speed_limit": [speed_limit],
     "Urban_or_Rural_Area": [urban_rural_options[selected_urban]],
     "Light_Conditions": [light_mapping[selected_light]],
-    "Road_Surface_Conditions": [surface_mapping[selected_surface]], # Used for Interaction feature
-    # Dummy values for the remaining 5 features required by the model
+    "Road_Surface_Conditions": [surface_mapping[selected_surface]], 
+    # Dummy values for the remaining features (we must ensure they are all present)
     "Did_Police_Officer_Attend_Scene_of_Accident": [0],
     "Accident_Hour": [12], 
     "2nd_Road_Class": [0], 
@@ -85,14 +80,14 @@ input_df = pd.DataFrame({
 input_df['Speed_Urban_Rural'] = input_df['Urban_or_Rural_Area'] * input_df['Speed_limit']
 input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Road_Surface_Conditions']
 
-# --- CRITICAL STEP: Filter and Order Features to get exactly 10 features ---
+# --- CRITICAL STEP: Alignment and Ordering using the loaded list ---
 
-# Ensure all 10 required features are present (even if we rely on dummy values)
+# 1. Ensure all features in REQUIRED_LGB_FEATURES are present in input_df (fill with 0 if missing)
 for col in REQUIRED_LGB_FEATURES:
     if col not in input_df.columns:
         input_df[col] = 0
 
-# Filter the DataFrame to include ONLY the 10 required features in the correct order
+# 2. Filter the DataFrame to include ONLY the features in REQUIRED_LGB_FEATURES in the correct order
 input_df_final = input_df[REQUIRED_LGB_FEATURES]
 
 # Convert all to float
@@ -100,11 +95,10 @@ input_df_final = input_df_final.astype(float)
 
 # --- Prediction ---
 try:
-    # Double check shape (optional but highly recommended for debugging)
-    if input_df_final.shape[1] != 10:
-        st.error(f"Internal error: Final feature count is {input_df_final.shape[1]}, expected 10.")
+    if input_df_final.shape[1] != len(REQUIRED_LGB_FEATURES):
+        st.error(f"Internal error: Final feature count is {input_df_final.shape[1]}, expected {len(REQUIRED_LGB_FEATURES)}.")
         st.stop()
-
+        
     input_np = input_df_final.to_numpy()
     probs = model.predict_proba(input_np)
     pred = np.argmax(probs, axis=1)
@@ -116,12 +110,10 @@ except Exception as e:
     
 # --- Rule-based adjustment ---
 pred_label = pred_label_raw
-# Logical rule: If Dry, Daylight, and low speed -> NOT SEVERE
 if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
     pred_label = "NOT SEVERE"
 if selected_urban == "Urban" and speed_limit <= 40:
     pred_label = "NOT SEVERE"
-# Logical rule: If hazardous conditions or high speed -> SEVERE
 if selected_surface in ["Frost/Ice", "Snow", "Flood"] or speed_limit > 60:
     pred_label = "SEVERE"
 
