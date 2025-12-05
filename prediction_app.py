@@ -24,11 +24,12 @@ def load_model_and_resources():
         model = joblib.load(os.path.join(BASE_PATH, "lgb_model.pkl"))
         le = joblib.load(os.path.join(BASE_PATH, "target_encoder.pkl"))
         
-        # *** CRITICAL CHANGE: Load the actual feature list from the saved file ***
-        REQUIRED_LGB_FEATURES = joblib.load(os.path.join(BASE_PATH, "selected_features.pkl")) 
+        # *** CRITICAL CHANGE: Get the 10 features directly from the model object ***
+        # هذا يضمن أن القائمة هي نفسها التي استخدمت في التدريب (feature_names)
+        REQUIRED_LGB_FEATURES = model.feature_name_
         
         st.sidebar.markdown("---")
-        # ستظهر هنا قيمة 10 إذا كان النموذج مدربًا على 10 ميزات
+        # يجب أن تظهر هنا قيمة 10
         st.sidebar.write(f"Model expects {len(REQUIRED_LGB_FEATURES)} features.")
         st.sidebar.write("First 3 features:", REQUIRED_LGB_FEATURES[:3])
         
@@ -63,14 +64,16 @@ selected_light = st.selectbox("Light Conditions", list(light_mapping.keys()))
 surface_options = ['Dry', 'Wet/Damp', 'Frost/Ice', 'Snow', 'Flood'] if "Darkness" in selected_light else ['Dry', 'Wet/Damp']
 selected_surface = st.selectbox("Road Surface Conditions", surface_options)
 
-# --- Build Input DataFrame (Features required for prediction AND for engineering) ---
-# سنقوم بتضمين الميزات التي تم إدخالها والميزات الوهمية اللازمة فقط في حالة استخدامها كمدخلات مباشرة
+# --- Build Input DataFrame (CRITICAL: We must include all components needed for the 10 features) ---
+
+# Road_Surface_Conditions يتم استخدامها فقط للهندسة (Light_Road_Interaction) وليس كمدخل مباشر للنموذج
 input_df = pd.DataFrame({
     "Speed_limit": [speed_limit],
     "Urban_or_Rural_Area": [urban_rural_options[selected_urban]],
     "Light_Conditions": [light_mapping[selected_light]],
-    "Road_Surface_Conditions": [surface_mapping[selected_surface]], 
-    # يتم الإبقاء على القيم الوهمية فقط إذا كانت جزءًا من ميزات النموذج العشرة
+    "Road_Surface_Conditions": [surface_mapping[selected_surface]], # تبقى هنا للاستخدام في الهندسة
+    
+    # الميزات الوهمية الـ 5 الأخرى التي يحتاجها النموذج
     "Did_Police_Officer_Attend_Scene_of_Accident": [0],
     "Accident_Hour": [12], 
     "2nd_Road_Class": [0], 
@@ -84,35 +87,26 @@ input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Ro
 
 # --- CRITICAL STEP: Alignment and Ordering using the loaded list ---
 
-# 1. إفراغ الـ DataFrame ثم ملؤها بـ REQUIRED_LGB_FEATURES لضمان عدم وجود أي عمود إضافي
-# (هذا الإجراء يضمن أن أي عمود زائد عن الـ 10 أعمدة المُنشأة سيتم تجاهله فورًا)
-input_df_final = pd.DataFrame(index=input_df.index)
-
-for col in REQUIRED_LGB_FEATURES:
-    if col in input_df.columns:
-        # إذا كانت الميزة موجودة، استخدم قيمتها
-        input_df_final[col] = input_df[col]
-    else:
-        # إذا كانت الميزة غير موجودة (وهذا لا ينبغي أن يحدث إذا كانت الميزات الـ 9 الأساسية والميزات الهندسية موجودة)
-        # قم بملء القيمة بـ 0 لضمان وجودها
-        input_df_final[col] = 0
-
-# 2. التأكد من الترتيب الصحيح (بما أننا بنيناها بالترتيب، هذا جيد، ولكن نؤكد الترتيب مرة أخرى)
-input_df_final = input_df_final[REQUIRED_LGB_FEATURES]
-
+# 1. تصفية وحصر الأعمدة لتشمل الـ 10 ميزات المطلوبة فقط بالترتيب الصحيح
+# بما أننا الآن نستخدم القائمة الصحيحة مباشرة من النموذج، فهذه الخطوة مضمونة
+try:
+    input_df_final = input_df[REQUIRED_LGB_FEATURES]
+except KeyError as e:
+    st.error(f"Feature name missing during alignment: {e}. Check if all required features are calculated.")
+    st.stop()
+    
 # Convert all to float
 input_df_final = input_df_final.astype(float)
 
 # --- Prediction ---
 try:
-    # Double check shape for internal error logging
     if input_df_final.shape[1] != len(REQUIRED_LGB_FEATURES):
         st.error(f"Internal error: Final feature count is {input_df_final.shape[1]}, expected {len(REQUIRED_LGB_FEATURES)}.")
         st.stop()
 
     input_np = input_df_final.to_numpy()
     
-    # *** CRITICAL FIX: Disable shape check as requested by LightGBM error ***
+    # Disable shape check for robustness (even though we fixed the underlying issue)
     probs = model.predict_proba(input_np, predict_disable_shape_check=True)
     
     pred = np.argmax(probs, axis=1)
