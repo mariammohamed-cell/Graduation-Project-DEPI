@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore')
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -41,22 +44,21 @@ surface_mapping = {'Dry': 4, 'Wet/Damp': 3, 'Frost/Ice': 2, 'Snow': 1, 'Flood': 
 # --- Streamlit UI ---
 st.set_page_config(page_title="Accident Severity Prediction", layout="centered")
 
-# Background + cars animation
 st.markdown(
     """
     <style>
+    /* Full page background */
     .stApp {
         background-image: url("https://i.ibb.co/3m5Qv9V/sky-road.gif");
         background-size: cover;
         background-repeat: no-repeat;
         background-position: center;
     }
+    /* Floating cars animation */
     .car {
         position: absolute;
         width: 100px;
-        animation-name: moveCar;
-        animation-iteration-count: infinite;
-        animation-timing-function: linear;
+        animation: moveCar 5s linear infinite;
     }
     @keyframes moveCar {
         0% {left: -120px;}
@@ -94,16 +96,13 @@ probs = model.predict_proba(input_df)
 pred = np.argmax(probs, axis=1)
 pred_label = le.inverse_transform(pred)[0]
 
-# --- Animated Cars + Prediction ---
+# --- Display Animated Result ---
 st.markdown(
     f"""
-    <div style='text-align:center; position:relative; height:350px;'>
-        <!-- Cars -->
-        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:180px; animation-duration:5s;">
-        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:220px; animation-duration:6s;">
-        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:260px; animation-duration:7s;">
-        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:300px; animation-duration:8s;">
-        
+    <div style='text-align:center; position:relative; height:300px;'>
+        <!-- Floating cars -->
+        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:180px;">
+        <img src="https://i.ibb.co/7tB0dMx/car-road.gif" class="car" style="top:220px; animation-duration:7s;">
         <!-- Prediction -->
         <div style='
             font-size:30px;
