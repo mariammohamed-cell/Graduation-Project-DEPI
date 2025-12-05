@@ -69,29 +69,28 @@ for col in selected_features:
         input_df[col] = 0
 input_df = input_df[selected_features]
 
-# Convert all to float and then to numpy array to avoid LightGBMError
-input_array = input_df.astype(float).to_numpy()
+# Convert all to float
+input_df = input_df.astype(float)
 
 # --- Prediction ---
 try:
-    probs = model.predict_proba(input_array)
+    input_np = input_df.to_numpy()  # تحويل لـ numpy لتجنب مشاكل LightGBM
+    probs = model.predict_proba(input_np)
     pred = np.argmax(probs, axis=1)
     pred_label_raw = le.inverse_transform(pred)[0]
 
-    # --- Rule-based logic ---
-    if pred_label_raw in ["High Severity", "3", 3]:
-        pred_label = "SEVERE"
-    else:
-        pred_label = "NOT SEVERE"
-
-    # Optional additional logic to make predictions more "logical"
-    if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
+    # --- Rule-based adjustment ---
+    pred_label = pred_label_raw
+    # قاعدة منطقية: لو نهار وSurface جاف وUrban والسرعة قليلة -> NOT SEVERE
+    if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
         pred_label = "NOT SEVERE"
     if selected_urban == "Urban" and speed_limit <= 40:
         pred_label = "NOT SEVERE"
+    if selected_surface in ["Frost/Ice", "Snow", "Flood"] or speed_limit > 60:
+        pred_label = "SEVERE"
 
 except Exception as e:
-    st.error(f"Prediction Error: {e}")
+    st.error("Prediction failed! Please check input features.")
     st.stop()
 
 # --- Display Prediction ---
