@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore')
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -41,24 +44,14 @@ st.markdown("<h1 style='text-align: center; color: #4A90E2;'>Accident Severity P
 
 # --- Inputs ---
 selected_urban = st.selectbox("Urban or Rural Area", list(urban_rural_options.keys()))
-
-# Speed limit depends on area
-if selected_urban == "Urban":
-    speed_limit = st.slider("Speed Limit (mph)", 20, 60, 30, step=5)
-else:
-    speed_limit = st.slider("Speed Limit (mph)", 20, 70, 40, step=5)
-
-# Light conditions
+speed_limit = st.slider(
+    "Speed Limit (mph)", 20, 60 if selected_urban=="Urban" else 70, 30 if selected_urban=="Urban" else 40, step=5
+)
 selected_light = st.selectbox("Light Conditions", list(light_mapping.keys()))
-
-# Road surface options depending on light
-if "Darkness" in selected_light:
-    surface_options = ['Dry', 'Wet/Damp', 'Frost/Ice', 'Snow', 'Flood']
-else:
-    surface_options = ['Dry', 'Wet/Damp']
+surface_options = ['Dry', 'Wet/Damp', 'Frost/Ice', 'Snow', 'Flood'] if "Darkness" in selected_light else ['Dry', 'Wet/Damp']
 selected_surface = st.selectbox("Road Surface Conditions", surface_options)
 
-# --- Build Input ---
+# --- Build Input DataFrame ---
 input_df = pd.DataFrame({
     "Speed_limit": [speed_limit],
     "Urban_or_Rural_Area": [urban_rural_options[selected_urban]],
@@ -70,26 +63,32 @@ input_df = pd.DataFrame({
 input_df['Speed_Urban_Rural'] = input_df['Urban_or_Rural_Area'] * input_df['Speed_limit']
 input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Road_Surface_Conditions']
 
-# Add missing features
+# Add missing features & ensure order
 for col in selected_features:
     if col not in input_df.columns:
         input_df[col] = 0
+input_df = input_df[selected_features]
 
-# Ensure exact order & float type
-input_df = input_df[selected_features].astype(float)
+# Convert all to float
+input_df = input_df.astype(float)
 
 # --- Prediction ---
 try:
     probs = model.predict_proba(input_df)
     pred = np.argmax(probs, axis=1)
-    pred_label = le.inverse_transform(pred)[0]
+    pred_label_raw = le.inverse_transform(pred)[0]
 
-    # --- Rule-based adjustment ---
-    if pred_label == "High Severity":
-        if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
-            pred_label = "Medium Severity"
-        if selected_urban == "Urban" and speed_limit <= 40:
-            pred_label = "Medium Severity"
+    # Map to SEVERE / NOT SEVERE
+    if pred_label_raw in ["High Severity", "3", 3]:
+        pred_label = "SEVERE"
+    else:
+        pred_label = "NOT SEVERE"
+
+    # Optional rule-based adjustment
+    if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
+        pred_label = "NOT SEVERE"
+    if selected_urban == "Urban" and speed_limit <= 40:
+        pred_label = "NOT SEVERE"
 
 except Exception as e:
     st.error(f"Prediction Error: {e}")
@@ -99,9 +98,8 @@ except Exception as e:
 st.markdown(
     f"""
     <div style='text-align:center; margin-top:40px;'>
-        <div style='font-size:36px; font-weight:bold; color:#E74C3C; animation: pulse 1.5s infinite;'>{pred_label}</div>
+        <div style='font-size:32px; font-weight:bold; color:#E74C3C; animation: pulse 1.5s infinite;'>{pred_label}</div>
     </div>
-
     <style>
     @keyframes pulse {{
         0% {{ transform: scale(1); color:#E74C3C; }}
