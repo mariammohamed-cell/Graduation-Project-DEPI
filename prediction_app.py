@@ -93,8 +93,8 @@ with col9:
     day_of_week = st.selectbox("Day of Week", list(day_name_map.keys()), index=4, format_func=lambda x: day_name_map[x])
 
 
-# --- Build Input DataFrame ---
-input_df = pd.DataFrame({
+# --- Build ALL Features Dictionary ---
+all_features_data = {
     "Speed_limit": [speed_limit],
     "Urban_or_Rural_Area": [urban_rural_options[selected_urban]],
     "Light_Conditions": [light_mapping[selected_light]],
@@ -104,19 +104,25 @@ input_df = pd.DataFrame({
     "2nd_Road_Class": [second_road_class],
     "Road_Type": [road_type_options[selected_road_type]],
     "Day_of_Week": [day_of_week] 
-})
+}
 
-# Feature Engineering
-input_df['Speed_Urban_Rural'] = input_df['Urban_or_Rural_Area'] * input_df['Speed_limit']
-input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Road_Surface_Conditions']
+# --- Feature Engineering ---
+all_features_data['Speed_Urban_Rural'] = all_features_data['Urban_or_Rural_Area'][0] * all_features_data['Speed_limit'][0]
+all_features_data['Light_Road_Interaction'] = all_features_data['Light_Conditions'][0] * all_features_data['Road_Surface_Conditions'][0]
 
-# --- Final Data Preparation ---
+# --- Final Data Preparation: CRITICAL STEP ---
+# 1. Create DataFrame from dictionary
+input_df = pd.DataFrame(all_features_data, index=[0]) # Explicit index=0 is safer
+
+# 2. Ensure all expected features are present (set 0 for missing ones)
 for col in selected_features:
     if col not in input_df.columns:
         input_df[col] = 0
 
+# 3. CRITICAL: Reorder and select features based on selected_features
 input_df_final = input_df[selected_features]
 
+# 4. Convert all columns to float
 input_df_final = input_df_final.astype(float)
 
 
