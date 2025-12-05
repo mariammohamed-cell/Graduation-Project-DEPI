@@ -122,17 +122,3 @@ st.markdown(
     </style>
     """, unsafe_allow_html=True
 )
-
-
-# %% [code] {"execution":{"iopub.status.busy":"2025-12-05T21:35:43.214397Z","iopub.execute_input":"2025-12-05T21:35:43.214733Z","iopub.status.idle":"2025-12-05T21:35:43.221146Z","shell.execute_reply.started":"2025-12-05T21:35:43.214707Z","shell.execute_reply":"2025-12-05T21:35:43.220219Z"}}
-%%writefile requirements.txt
-pandas==2.1.1
-scikit-learn==1.3.0
-lightgbm==4.0.0
-catboost==1.2.2
-imbalanced-learn==1.2.1
-streamlit==1.25.0
-joblib==1.3.2
-
-
-# %% [code]
