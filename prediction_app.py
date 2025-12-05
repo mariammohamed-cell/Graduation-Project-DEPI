@@ -141,3 +141,4 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+st.write("Model's required features list:", model.feature_name_)
