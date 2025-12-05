@@ -95,11 +95,14 @@ input_df_final = input_df_final.astype(float)
 
 # --- Prediction ---
 try:
+    # Double check shape (optional but highly recommended for debugging)
     if input_df_final.shape[1] != len(REQUIRED_LGB_FEATURES):
         st.error(f"Internal error: Final feature count is {input_df_final.shape[1]}, expected {len(REQUIRED_LGB_FEATURES)}.")
-        
+        st.stop()
+
     input_np = input_df_final.to_numpy()
     
+    # *** CRITICAL FIX: Disable shape check as requested by LightGBM error ***
     probs = model.predict_proba(input_np, predict_disable_shape_check=True)
     
     pred = np.argmax(probs, axis=1)
@@ -108,6 +111,7 @@ try:
 except Exception as e:
     st.error(f"Prediction failed! Error details: {e}")
     st.stop()
+    
 # --- Rule-based adjustment ---
 pred_label = pred_label_raw
 if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
