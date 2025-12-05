@@ -1,6 +1,3 @@
-import warnings
-warnings.filterwarnings('ignore')
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -78,8 +75,8 @@ for col in selected_features:
     if col not in input_df.columns:
         input_df[col] = 0
 
-# Ensure exact order
-input_df = input_df[selected_features]
+# Ensure exact order & float type
+input_df = input_df[selected_features].astype(float)
 
 # --- Prediction ---
 try:
@@ -87,7 +84,7 @@ try:
     pred = np.argmax(probs, axis=1)
     pred_label = le.inverse_transform(pred)[0]
 
-    # --- Rule-based adjustment for more logical output ---
+    # --- Rule-based adjustment ---
     if pred_label == "High Severity":
         if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
             pred_label = "Medium Severity"
@@ -102,14 +99,14 @@ except Exception as e:
 st.markdown(
     f"""
     <div style='text-align:center; margin-top:40px;'>
-        <div style='font-size:32px; font-weight:bold; color:#4A90E2; animation: pulse 1.5s infinite;'>{pred_label}</div>
+        <div style='font-size:36px; font-weight:bold; color:#E74C3C; animation: pulse 1.5s infinite;'>{pred_label}</div>
     </div>
 
     <style>
     @keyframes pulse {{
-        0% {{ transform: scale(1); color:#4A90E2; }}
-        50% {{ transform: scale(1.25); color:#50E3C2; }}
-        100% {{ transform: scale(1); color:#4A90E2; }}
+        0% {{ transform: scale(1); color:#E74C3C; }}
+        50% {{ transform: scale(1.25); color:#F1C40F; }}
+        100% {{ transform: scale(1); color:#E74C3C; }}
     }}
     </style>
     """,
