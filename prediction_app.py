@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings('ignore')  
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -66,8 +69,8 @@ for col in selected_features:
         input_df[col] = 0
 input_df = input_df[selected_features]
 
-# Convert all to float
-input_df = input_df.astype(float)
+# --- Convert all columns to float64 to prevent PyArrow issues ---
+input_df = input_df.apply(pd.to_numeric, errors='coerce', downcast='float')
 
 # --- Prediction ---
 try:
@@ -75,28 +78,17 @@ try:
     pred = np.argmax(probs, axis=1)
     pred_label_raw = le.inverse_transform(pred)[0]
 
-    # --- Smarter Rule-Based Logic ---
-    pred_label = "NOT SEVERE"  # default
-
-    # Base prediction from model
+    # Map to SEVERE / NOT SEVERE
     if pred_label_raw in ["High Severity", "3", 3]:
         pred_label = "SEVERE"
+    else:
+        pred_label = "NOT SEVERE"
 
-    # 1. Daylight, Dry, low speed
+    # Optional rule-based adjustment for logical predictions
     if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit < 40:
         pred_label = "NOT SEVERE"
-
-    # 2. Urban area, low speed
     if selected_urban == "Urban" and speed_limit <= 40:
         pred_label = "NOT SEVERE"
-
-    # 3. Rural area, high speed
-    if selected_urban == "Rural" and speed_limit > 60:
-        pred_label = "SEVERE"
-
-    # 4. Darkness and slippery surface
-    if "Darkness" in selected_light and selected_surface in ["Wet/Damp", "Frost/Ice", "Snow", "Flood"]:
-        pred_label = "SEVERE"
 
 except Exception as e:
     st.error(f"Prediction Error: {e}")
