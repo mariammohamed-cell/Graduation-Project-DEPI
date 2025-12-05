@@ -1,5 +1,3 @@
-warnings.filterwarnings('ignore')
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,8 +12,8 @@ def is_kaggle_environment():
 if is_kaggle_environment():
     BASE_PATH = "/kaggle/input/accident-prediction-model/"
 else:
-    # For Streamlit Cloud, files must be inside a folder named "accident-prediction-model"
-    BASE_PATH = "accident-prediction-model/"
+    # If files are placed directly in the root directory (alongside the app.py file)
+    BASE_PATH = "" 
 
 @st.cache_resource
 def load_model_and_resources():
