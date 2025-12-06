@@ -31,13 +31,12 @@ REQUIRED_LGB_FEATURES = [
 def load_model_and_resources():
     try:
         model = joblib.load(os.path.join(BASE_PATH, "lgb_model.pkl"))
-        le = joblib.load(os.path.join(BASE_PATH, "target_encoder.pkl"))
-        return model, le
+        return model
     except Exception as e:
         st.error(f"Error loading resources: {e}")
         st.stop()
 
-model, le = load_model_and_resources()
+model = load_model_and_resources()
 
 # --- Encoders / Mappings ---
 urban_rural_options = {"Urban": 1, "Rural": 2, "Unallocated": 3}
@@ -85,9 +84,7 @@ input_df_final = input_df[REQUIRED_LGB_FEATURES].astype(float)
 
 # --- Prediction ---
 try:
-    probs = model.predict_proba(input_df_final)  # [ [prob_NOT_SEVERE, prob_SEVERE] ]
-    pred_index = np.argmax(probs, axis=1)[0]
-    prob_NOT_SEVERE, prob_SEVERE = probs[0]
+    pred_index = np.argmax(model.predict_proba(input_df_final), axis=1)[0]
 except Exception as e:
     st.error(f"Prediction failed! Error: {e}")
     st.stop()
@@ -108,15 +105,11 @@ elif selected_urban == "Urban" and speed_limit <= 40:
 else:
     pred_label = "SEVERE" if pred_index == 1 else "NOT SEVERE"
 
-# --- Display Prediction with Probabilities ---
+# --- Display Prediction ---
 st.markdown(
     f"""
     <div style='text-align:center; margin-top:40px;'>
         <div style='font-size:32px; font-weight:bold; color:#E74C3C; animation: pulse 1.5s infinite;'>{pred_label}</div>
-        <div style='font-size:18px; margin-top:10px;'>
-            Probability SEVERE: {prob_SEVERE*100:.1f}% <br>
-            Probability NOT SEVERE: {prob_NOT_SEVERE*100:.1f}%
-        </div>
     </div>
     <style>
     @keyframes pulse {{
