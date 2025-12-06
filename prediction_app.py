@@ -13,17 +13,15 @@ def is_kaggle_environment():
 
 BASE_PATH = "/kaggle/input/pkl-files/" if is_kaggle_environment() else ""
 
-# Global variable to hold the actual required features list
-# *** التعديل الحاسم: تعريف الميزات يدوياً لضمان التطابق وتجنب الخطأ (1, 0) ***
 REQUIRED_LGB_FEATURES = [
     'Did_Police_Officer_Attend_Scene_of_Accident',
-    'Speed_Urban_Rural', # ميزة مُهندسة
+    'Speed_Urban_Rural',
     'Speed_limit',
     'Urban_or_Rural_Area',
     'Light_Conditions',
     'Accident_Hour',
     '2nd_Road_Class',
-    'Light_Road_Interaction', # ميزة مُهندسة
+    'Light_Road_Interaction',
     'Road_Type',
     'Day_of_Week'
 ]
@@ -34,8 +32,6 @@ def load_model_and_resources():
     try:
         model = joblib.load(os.path.join(BASE_PATH, "lgb_model.pkl"))
         le = joblib.load(os.path.join(BASE_PATH, "target_encoder.pkl"))
-        
-        # تم إزالة محاولة قراءة model.feature_name_ والاعتماد على القائمة المحددة يدوياً
         
         st.sidebar.markdown("---")
         st.sidebar.write(f"Model expects {len(REQUIRED_LGB_FEATURES)} features.")
@@ -48,7 +44,7 @@ def load_model_and_resources():
 
 model, le = load_model_and_resources()
 
-# --- Encoders / Mappings (kept same) ---
+# --- Encoders / Mappings ---
 urban_rural_options = {"Urban": 1, "Rural": 2, "Unallocated": 3}
 light_mapping = {
     'Daylight: Street light present': 4,
@@ -72,31 +68,26 @@ selected_light = st.selectbox("Light Conditions", list(light_mapping.keys()))
 surface_options = ['Dry', 'Wet/Damp', 'Frost/Ice', 'Snow', 'Flood'] if "Darkness" in selected_light else ['Dry', 'Wet/Damp']
 selected_surface = st.selectbox("Road Surface Conditions", surface_options)
 
-# --- Build Input DataFrame (CRITICAL: We must include all components needed for the 10 features) ---
-
-# Road_Surface_Conditions يتم استخدامها فقط للهندسة (Light_Road_Interaction) وليس كمدخل مباشر للنموذج
+# --- Build Input DataFrame ---
 input_df = pd.DataFrame({
     "Speed_limit": [speed_limit],
     "Urban_or_Rural_Area": [urban_rural_options[selected_urban]],
     "Light_Conditions": [light_mapping[selected_light]],
-    "Road_Surface_Conditions": [surface_mapping[selected_surface]], # تبقى هنا للاستخدام في الهندسة
+    "Road_Surface_Conditions": [surface_mapping[selected_surface]], 
     
-    # الميزات الوهمية الـ 5 الأخرى التي يحتاجها النموذج
-    # يتم تعيين قيم افتراضية هنا
+    # Dummy features required by the model
     "Did_Police_Officer_Attend_Scene_of_Accident": [0],
-    "Accident_Hour": [12], 
-    "2nd_Road_Class": [0], 
+    "Accident_Hour": [12],  
+    "2nd_Road_Class": [0],  
     "Road_Type": [6],      
-    "Day_of_Week": [4]     
+    "Day_of_Week": [4]      
 })
 
 # Feature Engineering
 input_df['Speed_Urban_Rural'] = input_df['Urban_or_Rural_Area'] * input_df['Speed_limit']
 input_df['Light_Road_Interaction'] = input_df['Light_Conditions'] * input_df['Road_Surface_Conditions']
 
-# --- CRITICAL STEP: Alignment and Ordering using the loaded list ---
-
-# 1. تصفية وحصر الأعمدة لتشمل الـ 10 ميزات المطلوبة فقط بالترتيب الصحيح (باستخدام القائمة الثابتة)
+# --- Alignment and Ordering ---
 try:
     input_df_final = input_df[REQUIRED_LGB_FEATURES]
 except KeyError as e:
@@ -114,7 +105,6 @@ try:
 
     input_np = input_df_final.to_numpy()
     
-    # استخدام predict_disable_shape_check كطبقة حماية إضافية
     probs = model.predict_proba(input_np, predict_disable_shape_check=True)
     
     pred = np.argmax(probs, axis=1)
@@ -126,12 +116,19 @@ except Exception as e:
     
 # --- Rule-based adjustment ---
 pred_label = pred_label_raw
-if selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
-    pred_label = "NOT SEVERE"
-if selected_urban == "Urban" and speed_limit <= 40:
-    pred_label = "NOT SEVERE"
+
+# 1. Highest Priority Rule: SEVERE conditions
 if selected_surface in ["Frost/Ice", "Snow", "Flood"] or speed_limit > 60:
     pred_label = "SEVERE"
+
+# 2. Safety Rule 1: Dry, Daylight, Slow
+elif selected_surface == "Dry" and "Daylight" in selected_light and speed_limit <= 40:
+    pred_label = "NOT SEVERE"
+
+# 3. Safety Rule 2: Urban and Slow
+elif selected_urban == "Urban" and speed_limit <= 40:
+    pred_label = "NOT SEVERE"
+
 
 # --- Display Prediction ---
 st.markdown(
